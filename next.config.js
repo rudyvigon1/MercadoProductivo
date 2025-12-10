@@ -81,6 +81,27 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
         ],
       },
+      // Content Security Policy - Report-Only Mode (Monitoreo sin bloquear)
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.pusher.com https://cdn.vercel-insights.com https://challenges.cloudflare.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://plus.unsplash.com https://via.placeholder.com",
+              "connect-src 'self' https://*.supabase.co wss://ws-*.pusher.com https://api.mercadopago.com https://vitals.vercel-insights.com",
+              "frame-src 'self' https://www.mercadopago.com https://challenges.cloudflare.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; ')
+          }
+        ]
+      },
     ];
   },
   // Las Server Actions están habilitadas por defecto en Next.js 14+

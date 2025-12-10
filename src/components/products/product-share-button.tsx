@@ -5,6 +5,7 @@ import { Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Props {
   productId: string;
@@ -23,7 +24,7 @@ export default function ProductShareButton({ productId, productTitle, sellerId, 
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUserId(user?.id ?? null);
-      } catch {}
+      } catch { }
     })();
   }, [supabase]);
 
@@ -34,7 +35,7 @@ export default function ProductShareButton({ productId, productTitle, sellerId, 
       const text = isOwner
         ? `Te invito a conocer mi producto "${productTitle}" en Mercado Productivo. ¡Sumate y descubrí más!`
         : `Encontré este producto "${productTitle}" en Mercado Productivo. ¡Echale un vistazo!`;
-      
+
       // Compartir usando Web Share API con mensaje y URL
       if (navigator.share) {
         try {
@@ -44,7 +45,7 @@ export default function ProductShareButton({ productId, productTitle, sellerId, 
             url,
           });
         } catch (shareError) {
-          console.log("Error al compartir con Web Share API", shareError);
+          logger.error("Web Share API error", { error: shareError });
           toast.error("No se pudo compartir");
         }
       } else {

@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import confirmModal from "@/components/ui/confirm-modal";
+import { logger } from "@/lib/logger";
 
 interface ServiceItem {
   id: string;
@@ -28,7 +29,8 @@ interface ServiceItem {
   featured_until?: string | null;
   location?: string | null;
   cover_url?: string | null;
-  profiles?: {    first_name?: string;
+  profiles?: {
+    first_name?: string;
     last_name?: string;
     city?: string;
     province?: string;
@@ -38,7 +40,7 @@ interface ServiceItem {
 }
 
 export default function ServicesGrid({
-  filters, onServicesCountChange, sellerId, excludeServiceId, excludeSellerId, 
+  filters, onServicesCountChange, sellerId, excludeServiceId, excludeSellerId,
   variant = "default", pageSize, showPagination = true
 }: {
   filters: ServiceFilters;
@@ -69,7 +71,7 @@ export default function ServicesGrid({
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUserId(user?.id ?? null);
-      } catch {}
+      } catch { }
     })();
   }, [supabase]);
 
@@ -92,19 +94,19 @@ export default function ServicesGrid({
         const s = new Set<string>();
         for (const it of results) if (it.liked) s.add(it.id);
         setLiked(s);
-      } catch {}
+      } catch { }
     }
     const ids = services.map(s => s.id);
     if (ids.length > 0) loadLikes(ids);
     return () => { active = false; };
   }, [services]);
 
-  const loadServices = useCallback(async ({ 
-    reset, page, pageSize 
-  }: { 
-    reset: boolean; 
-    page: number; 
-    pageSize: number; 
+  const loadServices = useCallback(async ({
+    reset, page, pageSize
+  }: {
+    reset: boolean;
+    page: number;
+    pageSize: number;
   }) => {
     try {
       if (reset) {
@@ -209,7 +211,7 @@ export default function ServicesGrid({
       }
       if (res.status === 400) {
         let err: any = null;
-        try { err = await res.json(); } catch {}
+        try { err = await res.json(); } catch { }
         if (err?.error === "SELF_LIKE_FORBIDDEN") {
           await confirmModal({
             title: "Acción no permitida",
@@ -230,7 +232,7 @@ export default function ServicesGrid({
         if (json.liked) s.add(svc.id); else s.delete(svc.id);
         return s;
       });
-    } catch {}
+    } catch { }
   };
 
   const shareService = async (svc: ServiceItem) => {
@@ -240,7 +242,7 @@ export default function ServicesGrid({
       const text = isOwner
         ? `Te invito a conocer mi servicio "${svc.title}" en Mercado Productivo. ¡Sumate y descubrí más!`
         : `Encontré este servicio "${svc.title}" en Mercado Productivo. ¡Echale un vistazo!`;
-      
+
       // Compartir usando Web Share API con mensaje y URL
       if (navigator.share) {
         try {
@@ -250,14 +252,14 @@ export default function ServicesGrid({
             url,
           });
         } catch (shareError) {
-          console.log("Error al compartir con Web Share API", shareError);
+          logger.error("Web Share API error", { error: shareError });
           toast.error("No se pudo compartir");
         }
       } else {
         toast.error("La opción de compartir no está disponible en tu navegador.");
       }
     } catch (e) {
-      console.error("shareService error", e);
+      logger.error("shareService error", { error: e });
       toast.error("No se pudo compartir");
     }
   };
@@ -267,7 +269,7 @@ export default function ServicesGrid({
       <div className={cn(
         variant === "compact" ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
           : variant === "comfortable" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5"
-          : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+            : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
         "items-stretch"
       )}>
         {Array.from({ length: PAGE_SIZE }).map((_, i) => (
@@ -300,7 +302,7 @@ export default function ServicesGrid({
       <div className={cn(
         variant === "compact" ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
           : variant === "comfortable" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5"
-          : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
+            : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
         "items-stretch"
       )}>
         {services.map((svc) => (
@@ -340,7 +342,7 @@ export default function ServicesGrid({
                   </Button>
                 </div>
               )}
-              <div className={cn("overflow-hidden bg-gray-100", variant === "compact" ? "aspect-square" : "aspect-[4/3]")}> 
+              <div className={cn("overflow-hidden bg-gray-100", variant === "compact" ? "aspect-square" : "aspect-[4/3]")}>
                 {svc.cover_url ? (
                   <div className="relative w-full h-full">
                     <Image src={svc.cover_url} alt={svc.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />

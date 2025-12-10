@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Star, MapPin, Heart, Share2, 
+import {
+  Star, MapPin, Heart, Share2,
   Package, Clock, User, Phone,
   ChevronLeft, ChevronRight
 } from "lucide-react";
@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import confirmModal from "@/components/ui/confirm-modal";
+import { logger } from "@/lib/logger";
 
 interface Product {
   id: string;
@@ -84,7 +85,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUserId(user?.id ?? null);
-      } catch {}
+      } catch { }
     })();
   }, [supabase]);
 
@@ -107,7 +108,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
         const s = new Set<string>();
         for (const it of results) if (it.liked) s.add(it.id);
         setLiked(s);
-      } catch {}
+      } catch { }
     }
     const ids = products.map(p => p.id);
     if (ids.length > 0) loadLikes(ids);
@@ -191,7 +192,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
           const j = await r.json();
           const it: Product[] = j.items || [];
           pageCacheRef.current[targetPage] = it;
-        } catch {}
+        } catch { }
       };
 
       if (apiHasMore) {
@@ -261,7 +262,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
       }
       if (res.status === 400) {
         let err: any = null;
-        try { err = await res.json(); } catch {}
+        try { err = await res.json(); } catch { }
         if (err?.error === "SELF_LIKE_FORBIDDEN") {
           await confirmModal({
             title: "Acción no permitida",
@@ -282,7 +283,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
         if (json.liked) s.add(product.id); else s.delete(product.id);
         return s;
       });
-    } catch {}
+    } catch { }
   };
 
   const formatPrice = (price: number | null | undefined) => {
@@ -338,7 +339,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
             )} />
             <CardContent className={cn("space-y-3",
               variant === "compact" ? "p-3" : variant === "comfortable" ? "p-3" : "p-4"
-            ) }>
+            )}>
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
               {variant !== "compact" && <Skeleton className="h-6 w-1/3" />}
@@ -399,56 +400,56 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
 
               {/* Botones de acción */}
               {variant !== "compact" && (
-              <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 w-8 p-0 bg-white/90 hover:bg-white"
-                  onClick={() => toggleLike(product)}
-                >
-                  <Heart 
-                    className={cn(
-                      "h-4 w-4",
-                      liked.has(product.id) ? "fill-red-500 text-red-500" : "text-gray-600"
-                    )} 
-                  />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 w-8 p-0 bg-white/90 hover:bg-white"
-                  onClick={async () => {
-                    try {
-                      const url = `${window.location.origin}/products/${product.id}`;
-                      const isOwner = currentUserId && currentUserId === product.user_id;
-                      const text = isOwner
-                        ? `Te invito a conocer mi producto "${product.title}" en Mercado Productivo. ¡Sumate y descubrí más!`
-                        : `Encontré este producto "${product.title}" en Mercado Productivo. ¡Echale un vistazo!`;
-                      if (navigator.share) {
-                        try {
-                          await navigator.share({ title: product.title, text, url });
-                        } catch (shareError) {
-                          console.log("Error al compartir con Web Share API", shareError);
-                          toast.error("No se pudo compartir");
+                <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 w-8 p-0 bg-white/90 hover:bg-white"
+                    onClick={() => toggleLike(product)}
+                  >
+                    <Heart
+                      className={cn(
+                        "h-4 w-4",
+                        liked.has(product.id) ? "fill-red-500 text-red-500" : "text-gray-600"
+                      )}
+                    />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 w-8 p-0 bg-white/90 hover:bg-white"
+                    onClick={async () => {
+                      try {
+                        const url = `${window.location.origin}/products/${product.id}`;
+                        const isOwner = currentUserId && currentUserId === product.user_id;
+                        const text = isOwner
+                          ? `Te invito a conocer mi producto "${product.title}" en Mercado Productivo. ¡Sumate y descubrí más!`
+                          : `Encontré este producto "${product.title}" en Mercado Productivo. ¡Echale un vistazo!`;
+                        if (navigator.share) {
+                          try {
+                            await navigator.share({ title: product.title, text, url });
+                          } catch (shareError) {
+                            logger.error("Web Share API error", { error: shareError });
+                            toast.error("No se pudo compartir");
+                          }
+                        } else {
+                          toast.error("La opción de compartir no está disponible en tu navegador.");
                         }
-                      } else {
-                        toast.error("La opción de compartir no está disponible en tu navegador.");
+                      } catch (e) {
+                        logger.error("share product error", { error: e });
+                        toast.error("No se pudo compartir");
                       }
-                    } catch (e) {
-                      console.error("share product error", e);
-                      toast.error("No se pudo compartir");
-                    }
-                  }}
-                >
-                  <Share2 className="h-4 w-4 text-gray-600" />
-                </Button>
-              </div>
+                    }}
+                  >
+                    <Share2 className="h-4 w-4 text-gray-600" />
+                  </Button>
+                </div>
               )}
 
               {/* Imagen */}
               <div className={cn("overflow-hidden bg-gray-100 flex items-center justify-center",
                 variant === "compact" ? "aspect-square" : "aspect-[4/3]"
-              ) }>
+              )}>
                 {product.primaryImageUrl ? (
                   <Image
                     src={product.primaryImageUrl}
@@ -471,50 +472,50 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
                 )}
               </div>
             </div>
-            
+
             <CardContent className={cn(
               variant === "compact" ? "p-3" : variant === "comfortable" ? "p-3" : "p-4",
               "flex flex-col flex-1"
-            ) }>
+            )}>
               {/* Título */}
               <h3 className={cn("font-semibold mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors",
                 variant === "compact" ? "text-base" : variant === "comfortable" ? "text-base" : "text-lg"
-              ) }>
+              )}>
                 {product.title}
               </h3>
-              
+
               {/* Vendedor y ubicación */}
               <div className={cn("space-y-1",
                 variant === "compact" ? "mb-2" : variant === "comfortable" ? "mb-2" : "mb-3"
-              ) }>
+              )}>
                 <div className={cn("flex items-center text-gray-500",
                   variant === "compact" ? "text-xs" : variant === "comfortable" ? "text-sm" : "text-sm"
-                ) }>
+                )}>
                   <User className="h-4 w-4 mr-1" />
                   <span className="truncate" data-testid={`product-card-seller-${product.id}`}>{getSellerName(product)}</span>
                 </div>
                 <div className={cn("flex items-center text-gray-500",
                   variant === "compact" ? "text-xs" : variant === "comfortable" ? "text-sm" : "text-sm"
-                ) }>
+                )}>
                   <MapPin className="h-4 w-4 mr-1" />
                   <span className="truncate">{getLocation(product)}</span>
                 </div>
               </div>
-              
+
               {/* Precio y cantidad */}
               <div className={cn(
                 variant === "compact" ? "mb-3" : variant === "comfortable" ? "mb-3" : "mb-4"
-              ) }>
+              )}>
                 <div>
                   <span className={cn("font-bold text-orange-600",
                     variant === "compact" ? "text-xl" : variant === "comfortable" ? "text-xl" : "text-2xl"
-                  ) }>
+                  )}>
                     {formatPrice(product.price)}
                   </span>
                   {formatPrice(product.price) !== 'Consultar' && (
                     <span className={cn("text-gray-500 ml-1",
                       variant === "compact" ? "text-xs" : variant === "comfortable" ? "text-sm" : "text-sm"
-                    ) }>
+                    )}>
                       / {product.quantity_unit}
                     </span>
                   )}
@@ -525,7 +526,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
                   </div>
                 )}
               </div>
-              
+
               {/* Fecha de publicación */}
               {variant !== "compact" && (
                 <div className="flex items-center text-xs text-gray-400 mb-4">
@@ -533,7 +534,7 @@ export default function ProductsGrid({ filters, onProductsCountChange, sellerId,
                   Publicado {formatDate(product.created_at)}
                 </div>
               )}
-              
+
               {/* Botones de acción */}
               <div className="mt-auto flex gap-2">
                 <Button asChild className="flex-1 bg-orange-500 hover:bg-orange-600" size={variant === "compact" ? "sm" : variant === "comfortable" ? "default" : undefined}>

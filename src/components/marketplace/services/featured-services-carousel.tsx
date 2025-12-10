@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import confirmModal from "@/components/ui/confirm-modal";
+import { logger } from "@/lib/logger";
 
 interface FeaturedService {
   id: string;
@@ -36,11 +37,11 @@ export default function FeaturedServicesCarousel() {
   useEffect(() => {
     async function load() {
       try {
-        const params = new URLSearchParams({ 
-          page: "1", 
-          pageSize: "30", 
-          onlyFeatured: "true", 
-          sortBy: "featured" 
+        const params = new URLSearchParams({
+          page: "1",
+          pageSize: "30",
+          onlyFeatured: "true",
+          sortBy: "featured"
         });
         const res = await fetch(`/api/public/services?${params.toString()}`, { cache: "no-store" });
         const json = await res.json();
@@ -54,7 +55,7 @@ export default function FeaturedServicesCarousel() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUserId(user?.id ?? null);
-      } catch {}
+      } catch { }
     })();
   }, [supabase]);
 
@@ -77,7 +78,7 @@ export default function FeaturedServicesCarousel() {
         const s = new Set<string>();
         for (const it of results) if (it.liked) s.add(it.id);
         setLiked(s);
-      } catch {}
+      } catch { }
     }
     const ids = items.map(i => i.id);
     if (ids.length > 0) loadLikes(ids);
@@ -106,7 +107,7 @@ export default function FeaturedServicesCarousel() {
       }
       if (res.status === 400) {
         let err: any = null;
-        try { err = await res.json(); } catch {}
+        try { err = await res.json(); } catch { }
         if (err?.error === "SELF_LIKE_FORBIDDEN") {
           await confirmModal({
             title: "Acción no permitida",
@@ -127,7 +128,7 @@ export default function FeaturedServicesCarousel() {
         if (json.liked) s.add(svc.id); else s.delete(svc.id);
         return s;
       });
-    } catch {}
+    } catch { }
   };
 
   const shareService = async (svc: FeaturedService) => {
@@ -137,7 +138,7 @@ export default function FeaturedServicesCarousel() {
       const text = isOwner
         ? `Te invito a conocer mi servicio "${svc.title}" en Mercado Productivo. ¡Sumate y descubrí más!`
         : `Encontré este servicio "${svc.title}" en Mercado Productivo. ¡Echale un vistazo!`;
-      
+
       // Compartir usando Web Share API con mensaje y URL
       if (navigator.share) {
         try {
@@ -147,24 +148,24 @@ export default function FeaturedServicesCarousel() {
             url,
           });
         } catch (shareError) {
-          console.log("Error al compartir con Web Share API", shareError);
+          logger.error("Web Share API error", { error: shareError });
           toast.error("No se pudo compartir");
         }
       } else {
         toast.error("La opción de compartir no está disponible en tu navegador.");
       }
     } catch (e) {
-      console.error("shareService error", e);
+      logger.error("shareService error", { error: e });
       toast.error("No se pudo compartir");
     }
   };
 
   const formatPrice = (value: number | null) => {
     if (value == null || Number(value) === 0) return "Consultar";
-    return new Intl.NumberFormat("es-AR", { 
-      style: "currency", 
-      currency: "ARS", 
-      minimumFractionDigits: 0 
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency: "ARS",
+      minimumFractionDigits: 0
     }).format(Number(value));
   };
 

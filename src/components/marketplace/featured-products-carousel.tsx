@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import confirmModal from "@/components/ui/confirm-modal";
+import { logger } from "@/lib/logger";
 
 interface FeaturedProduct {
   id: string;
@@ -68,7 +69,7 @@ export default function FeaturedProductsCarousel() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUserId(user?.id ?? null);
-      } catch {}
+      } catch { }
     })();
   }, [supabase]);
 
@@ -91,7 +92,7 @@ export default function FeaturedProductsCarousel() {
         const s = new Set<string>();
         for (const it of results) if (it.liked) s.add(it.id);
         setLiked(s);
-      } catch {}
+      } catch { }
     }
     const ids = products.map(p => p.id);
     if (ids.length > 0) loadLikes(ids);
@@ -120,7 +121,7 @@ export default function FeaturedProductsCarousel() {
       }
       if (res.status === 400) {
         let err: any = null;
-        try { err = await res.json(); } catch {}
+        try { err = await res.json(); } catch { }
         if (err?.error === "SELF_LIKE_FORBIDDEN") {
           await confirmModal({
             title: "Acción no permitida",
@@ -141,7 +142,7 @@ export default function FeaturedProductsCarousel() {
         if (json.liked) s.add(p.id); else s.delete(p.id);
         return s;
       });
-    } catch {}
+    } catch { }
   };
 
   const shareProduct = async (p: FeaturedProduct) => {
@@ -155,14 +156,14 @@ export default function FeaturedProductsCarousel() {
         try {
           await navigator.share({ title: p.title, text, url });
         } catch (shareError) {
-          console.log("Error al compartir con Web Share API", shareError);
+          logger.error("Web Share API error", { error: shareError });
           toast.error("No se pudo compartir");
         }
       } else {
         toast.error("La opción de compartir no está disponible en tu navegador.");
       }
     } catch (e) {
-      console.error("share featured product error", e);
+      logger.error("share featured product error", { error: e });
       toast.error("No se pudo compartir");
     }
   };
@@ -188,7 +189,7 @@ export default function FeaturedProductsCarousel() {
             </h2>
             <div className="w-24 h-1 bg-orange-500 mx-auto mb-6"></div>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="bg-white rounded-lg shadow-sm border animate-pulse">
